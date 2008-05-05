@@ -277,8 +277,13 @@ class Pyasm
     end
   end
   def eval src
-    iseq = VM::InstructionSequence.compile(src)
-    load_iseq iseq
+    begin
+      iseq = VM::InstructionSequence.compile(src)
+      load_iseq iseq
+    rescue NameError
+      puts "*** Are you sure you're running Ruby 1.9?"
+      throw e
+    end
   end
 
   def to_pickle
