@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+require 'unholy'
+
+asm = Pyasm.new(ARGV[0])
+asm.import :Kernel
+asm.eval IO.read(ARGV[0])
+asm.compile(ARGV[0]+".pyc")

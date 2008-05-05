@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+iseq = VM::InstructionSequence.compile(IO.read(ARGV[0]))
+iseq.to_a.last.each do |inst|
+  p inst
+end
