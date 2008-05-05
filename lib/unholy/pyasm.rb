@@ -43,6 +43,11 @@ class Pyasm
   end
 
   def pop_top; bc 0x01; dump_stack end
+  def binary_add
+    add = bc 0x17
+    @stack.pop
+    add
+  end
   def ret_val; bc 0x53 end
   def build_class; bc 0x59 end
   def store_name(name)
@@ -153,6 +158,9 @@ class Pyasm
   end
   def newarray size
     build_list size
+  end
+  def opt_plus
+    binary_add
   end
   def putnil
     load_const(nil)
@@ -280,7 +288,7 @@ class Pyasm
     begin
       iseq = VM::InstructionSequence.compile(src)
       load_iseq iseq
-    rescue NameError
+    rescue NameError => e
       puts "*** Are you sure you're running Ruby 1.9?"
       throw e
     end
