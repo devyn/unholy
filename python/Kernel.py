@@ -1,2 +1,2 @@
-def puts(str):
-  print str
+def puts(*args):
+  for x in args: print x
