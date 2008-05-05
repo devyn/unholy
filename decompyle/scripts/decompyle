@@ -85,13 +85,9 @@ elif outfile and os.path.isdir(outfile):
 elif outfile and len(files) > 1:
     out_base = outfile; outfile = None
 
-print time.ctime() #, args[0]
-
 try:
     main(src_base, out_base, files, outfile, showasm, showast, do_verify)
 except KeyboardInterrupt, OSError:
     pass
 except verify.VerifyCmpError:
     raise
-
-print time.ctime()

@@ -211,8 +211,8 @@ class GenericParser:
 		needsCompletion = {}
 		state = states[i]
 		predicted = {}
-		print state
-		print token
+		#print state
+		#print token
 		for item in state:
 			rule, pos, parent = item
 			lhs, rhs = rule
