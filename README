@@ -45,3 +45,27 @@
   bad that a Rubyist got a hold of
   them. :(
 
+        $ POTION $
+
+  Now, image if Ruby and Python
+  were to combine into something
+  new.  Let's call it "potion":
+
+  > potion test.py
+  HELLO FROM PYTHON
+  > potion test.rb
+  KONNICHIWA FROM RUBY
+
+  You know, it's crazy that Python
+  and Ruby fans find themselves
+  battling so much.  While syntax
+  is different, this exercise
+  proves how close they are to
+  each other!  And, yes, I like
+  Ruby's syntax and can think much
+  better in it, but it would be
+  nice to share libs with Python
+  folk and not have to wait forever
+  for a mythical VM that runs all
+  possible languages.
+
