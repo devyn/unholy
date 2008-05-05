@@ -202,7 +202,7 @@ class Pyasm
     @nopop = 2
   end
   def pop
-    pop_top unless @nopop > 0
+    pop_top # unless @nopop > 0
   end
   def opt_eq arg
     compare_op :==
