@@ -7,6 +7,8 @@
   bytecode back to Python source
   code using Decompyle (included.)
 
+  Requires Ruby 1.9 and Python 2.5.
+
 
          $ INSTALL $
 
