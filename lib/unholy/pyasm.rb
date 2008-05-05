@@ -270,7 +270,7 @@ class Pyasm
       when Symbol
         self.label inst
       when Array
-        p inst
+        # p inst
         inst[0] = :message if inst[0] == :send
         self.send *inst
       end
