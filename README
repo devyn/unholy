@@ -1,0 +1,47 @@
+
+
+          $ UNHOLY $
+
+  Compile Ruby to Python bytecode.
+  And, in addition, translate that
+  bytecode back to Python source
+  code using Decompyle (included.)
+
+
+         $ INSTALL $
+
+  First, install decompyle:
+
+  > cd decompyle
+  > python setup.py build
+  # python setup.py install
+
+  Then, in the main directory, use
+  the tools.
+
+            ---
+
+  To compile Ruby to a .pyc:
+
+  > bin/unholy test.rb
+  > python test.rb.pyc
+  
+            ---
+
+  To translate to Python:
+
+  > decompyle test.rb.pyc > test.py
+
+            ---
+
+  And, to view the disassembled
+  bytes:
+  
+  > bin/py-dis test.rb.pyc
+
+  Thanks to Ned Batchelder for his
+  rather juicy posts on dissecting
+  Python bytecode.  It is only too
+  bad that a Rubyist got a hold of
+  them. :(
+
