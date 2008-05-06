@@ -26,8 +26,7 @@
   To compile Ruby to a .pyc:
 
   > bin/unholy test.rb
-  > PYTHONPATH=python \
-               python test.rb.pyc
+  > python test.rb.pyc
   
             ---
 
