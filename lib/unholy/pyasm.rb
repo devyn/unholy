@@ -4,13 +4,13 @@ class Pyasm
   }
 
   attr_accessor :argc, :nlocals, :stacksize, :flags, :consts, :bytecode,
-    :filename, :lineno, :name, :symbols, :stacknow, :varsyms, :jumps, :labels
-  def initialize(fname, name = "<module>")
+    :filename, :lineno, :name, :symbols, :stacknow, :varsyms, :jumps, :labels, :lines
+  def initialize(fname, name = "<module>", lineno = 0)
     @argc, @nlocals, @stacksize, @flags, @filename, @lineno, @name, @stack, @nopop = 
-      0, 0, 1, 0x40, fname, 1, name, [], 0
+      0, 0, 1, 0x40, fname, lineno, name, [], 0
     @consts = [-1, nil]
     @symbols = [:Kernel]
-    @bytecode, @varsyms, @labels, @jumps = [], [], {}, {}
+    @bytecode, @varsyms, @labels, @lines, @jumps = [], [], {}, [], {}
   end
 
   def add_const(obj)
@@ -43,6 +43,11 @@ class Pyasm
   end
 
   def pop_top; bc 0x01; dump_stack end
+  def binary_add
+    add = bc 0x17
+    @stack.pop
+    add
+  end
   def ret_val; bc 0x53 end
   def build_class; bc 0x59 end
   def store_name(name)
@@ -86,6 +91,7 @@ class Pyasm
     stack_push Object.new, bc(0x7c, n, 0x0)
   end
   def store_fast(n)
+    dump_stack
     bc 0x7d, n, 0x0
   end
   def call_func(arity)
@@ -94,6 +100,9 @@ class Pyasm
   end
   def make_func(arity)
     bc 0x84, arity, 0x0
+  end
+  def line n
+    @lines << [n, @bytecode.flatten.length]
   end
   def prep_send
     @nopop -= 1 if @nopop > 0
@@ -155,6 +164,9 @@ class Pyasm
   end
   def newarray size
     build_list size
+  end
+  def opt_plus
+    binary_add
   end
   def putnil
     load_const(nil)
@@ -227,7 +239,7 @@ class Pyasm
     bytes = @bytecode.slice! idx..-1
     bytes.shift unless receiver
 
-    asm = Pyasm.new(@filename, id.to_s)
+    asm = Pyasm.new(@filename, id.to_s, @lines.last[0])
     asm.load_iseq iseq
     if type == :class
       load_const(id.to_s)
@@ -268,9 +280,9 @@ class Pyasm
     iseq.last.each do |inst|
       case inst
       when Integer # line no
-        nil
+        line inst
       when Symbol
-        self.label inst
+        label inst
       when Array
         # p inst
         inst[0] = :message if inst[0] == :send
@@ -336,7 +348,14 @@ class Pyasm
     f << @filename.to_pickle
     f << @name.to_pickle
     f << 1.to_plong
-    f << "".to_pickle
+
+    lnotab = ""
+    lastn, lastpos = @lines[0]
+    @lines[1..-1].each do |n, pos|
+      lnotab << [pos - lastpos, n - lastn].pack("cc")
+      lastn, lastpos = n, pos
+    end
+    f << lnotab.to_pickle
     f
   end
 
