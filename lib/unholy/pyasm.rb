@@ -1,13 +1,17 @@
 class Pyasm
+  CO_NEWLOCALS = 0x02
+  CO_NOFREE = 0x40
+
   OPS = {
     :== => 2
   }
 
   attr_accessor :argc, :nlocals, :stacksize, :flags, :consts, :bytecode,
     :filename, :lineno, :name, :symbols, :stacknow, :varsyms, :jumps, :labels, :lines
-  def initialize(fname, name = "<module>", lineno = 0)
-    @argc, @nlocals, @stacksize, @flags, @filename, @lineno, @name, @stack, @nopop = 
-      0, 0, 1, 0x40, fname, lineno, name, [], 0
+  def initialize(fname, type = nil, name = "<module>", lineno = 0)
+    @argc, @nlocals, @stacksize, @flags, @filename, @lineno, @name, @stack, @nopop, @type = 
+      0, 0, 1, CO_NOFREE, fname, lineno, name, [], 0, type
+    @flags |= CO_NEWLOCALS if type == :class
     @consts = [-1, nil]
     @symbols = [:Kernel]
     @bytecode, @varsyms, @labels, @lines, @jumps = [], [], {}, [], {}
@@ -48,6 +52,7 @@ class Pyasm
     @stack.pop
     add
   end
+  def load_locals; bc 0x52 end
   def ret_val; bc 0x53 end
   def build_class; bc 0x59 end
   def store_name(name)
@@ -159,7 +164,11 @@ class Pyasm
   end
 
   def leave
-    load_const(nil) if @stack.empty?
+    if @type == :class
+      load_locals
+    else
+      load_const(nil) if @stack.empty?
+    end
     ret_val
   end
   def newarray size
@@ -174,6 +183,9 @@ class Pyasm
   def putstring(str)
     str = @filename if str == "<compiled>"
     load_const(str)
+  end
+  def putobject(obj)
+    load_const(obj)
   end
   def message(meth, op_argc, blockiseq, op_flag, ic)
     # args = @stack.slice! -op_argc, op_argc
@@ -239,11 +251,15 @@ class Pyasm
     bytes = @bytecode.slice! idx..-1
     bytes.shift unless receiver
 
-    asm = Pyasm.new(@filename, id.to_s, @lines.last[0])
+    asm = Pyasm.new(@filename, type, id.to_s, @lines.last[0])
+    if type == :class
+      asm.load_name(:__name__)
+      asm.store_name(:__module__)
+    end
     asm.load_iseq iseq
     if type == :class
       load_const(id.to_s)
-      if bytes.empty?
+      if bytes.empty? or @consts[bytes[0][1]].nil?
         load_const(tuple())
       else
         @bytecode += bytes
@@ -284,7 +300,6 @@ class Pyasm
       when Symbol
         label inst
       when Array
-        # p inst
         inst[0] = :message if inst[0] == :send
         self.prep_send
         self.send *inst
