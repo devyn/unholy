@@ -1,3 +1,7 @@
+class Module
+  def to_pickle; self.name.to_pickle end
+end
+
 class NilClass
   def to_pickle; "N" end
 end

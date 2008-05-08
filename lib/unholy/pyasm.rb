@@ -2,6 +2,8 @@ class Pyasm
   CO_NEWLOCALS = 0x02
   CO_NOFREE = 0x40
 
+  VM_CALL_FCALL_BIT = 0x08
+
   OPS = {
     :== => 2
   }
@@ -11,7 +13,7 @@ class Pyasm
   def initialize(fname, type = nil, name = "<module>", lineno = 0)
     @argc, @nlocals, @stacksize, @flags, @filename, @lineno, @name, @stack, @nopop, @type = 
       0, 0, 1, CO_NOFREE, fname, lineno, name, [], 0, type
-    @flags |= CO_NEWLOCALS if type == :class
+    @flags |= CO_NEWLOCALS if [:class, :method].include?(type)
     @consts = [-1, nil]
     @symbols = [:Kernel]
     @bytecode, @varsyms, @labels, @lines, @jumps = [], [], {}, [], {}
@@ -200,7 +202,7 @@ class Pyasm
       bytes = @bytecode.slice! idx..-1
 
       unless receiver
-        unpop
+        unpop 
         case meth
         when :import
           return import(*args)
@@ -220,7 +222,9 @@ class Pyasm
       bytes = @bytecode.slice! idx..-1
     end
 
-    load_attr(meth)
+    if meth != :new
+      load_attr(meth)
+    end
     @bytecode += bytes
     call_func(op_argc)
   end
@@ -228,7 +232,7 @@ class Pyasm
     @nopop = 2
   end
   def pop
-    pop_top unless @nopop > 0
+    pop_top unless @nopop > 0 or @stack.empty?
   end
   def opt_eq arg
     compare_op :==
@@ -277,7 +281,7 @@ class Pyasm
     store_name(id)
 
     # this is a bit redundant, but decompyle requires it
-    if type == :method
+    if type == :method and @type == nil
       unless receiver
         load_name(id)
         load_name(:Kernel)
