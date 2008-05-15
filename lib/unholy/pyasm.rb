@@ -292,7 +292,9 @@ class Pyasm
     bytes = @bytecode.slice! idx..-1
     bytes.shift unless receiver
 
-    asm = Pyasm.new(@filename, type, id.to_s, @lines.last[0], iseq[5][:arg_size])
+    argc = iseq[4][:arg_size]
+    argc += 1 if type == :method # python's self
+    asm = Pyasm.new(@filename, type, id.to_s, @lines.last[0], argc)
     if type == :class
       asm.load_name(:__name__)
       asm.store_name(:__module__)
@@ -318,11 +320,16 @@ class Pyasm
     store_name(id)
 
     # this is a bit redundant, but decompyle requires it
-    if type == :method and @type == nil
-      unless receiver
+    if type == :method
+      if @type == nil
+        unless receiver
+          load_name(id)
+          load_name(:Kernel)
+          store_attr(id)
+        end
+      elsif @type == :class and id == :initialize
         load_name(id)
-        load_name(:Kernel)
-        store_attr(id)
+        store_name(:__init__)
       end
     end
   end
