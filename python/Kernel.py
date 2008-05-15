@@ -2,7 +2,7 @@ class Proc:
   def __init__(self, code):
     self.code = code
   def call(self, *args):
-    exec self.code in dict(zip(self.code.co_varnames, args))
+    return eval(self.code, dict(zip(self.code.co_varnames, args)))
 
 def proc(func):
   return Proc(func)

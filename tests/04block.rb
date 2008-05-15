@@ -1,3 +1,3 @@
 # 3
-a = proc { |x| print(x + 1) }
-a.call(2)
+a = proc { |x| x + 1 }
+puts a.call(2)

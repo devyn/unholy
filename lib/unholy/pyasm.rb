@@ -107,7 +107,7 @@ class Pyasm
     bc 0x7d, n, 0x0
   end
   def call_func(arity)
-    dump_stack
+    (arity + 2).times { @stack.pop }
     stack_push Object.new, bc(0x83, arity, 0x0)
   end
   def make_func(arity)
