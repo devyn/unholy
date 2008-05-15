@@ -81,7 +81,7 @@ class Pyasm
     bc(0x66, n, 0x0)
   end
   def build_list(n)
-    @stack.slice! -(n-1), (n-1)
+    @stack.slice! -(n-1), (n-1) if n > 0
     bc(0x67, n, 0x0)
   end
   def load_attr(name)
@@ -95,6 +95,9 @@ class Pyasm
   end
   def import_from(name)
     bc 0x6c, add_sym(name), 0x0
+  end
+  def jump(n)
+    mark_jump n, bc(0x6e, n, 0x0)
   end
   def jump_if_false(n)
     mark_jump n, bc(0x6f, n, 0x0)
