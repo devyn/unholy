@@ -8,11 +8,11 @@ class Pyasm
     :== => 2
   }
 
-  attr_accessor :argc, :nlocals, :stacksize, :flags, :consts, :bytecode,
+  attr_accessor :argc, :stacksize, :flags, :consts, :bytecode,
     :filename, :lineno, :name, :symbols, :stacknow, :varsyms, :jumps, :labels, :lines
-  def initialize(fname, type = nil, name = "<module>", lineno = 0)
-    @argc, @nlocals, @stacksize, @flags, @filename, @lineno, @name, @stack, @nopop, @type = 
-      0, 0, 1, CO_NOFREE, fname, lineno, name, [], 0, type
+  def initialize(fname, type = nil, name = "<module>", lineno = 0, argc = 0)
+    @argc, @stacksize, @flags, @filename, @lineno, @name, @stack, @nopop, @type = 
+      argc, 1, CO_NOFREE, fname, lineno, name, [], 0, type
     @flags |= CO_NEWLOCALS if [:class, :method].include?(type)
     @consts = [-1, nil]
     @symbols = [:Kernel]
@@ -49,11 +49,16 @@ class Pyasm
   end
 
   def pop_top; bc 0x01; dump_stack end
-  def binary_add
-    add = bc 0x17
+  def infix i
+    add = bc i
     @stack.pop
     add
   end
+  def binary_add; infix 0x17 end
+  def binary_subscr; infix 0x19 end
+  def inplace_add; infix 0x37 end
+  def print_item; dump_stack; bc 0x47 end
+  def print_newline; dump_stack; bc 0x48 end
   def load_locals; bc 0x52 end
   def ret_val; bc 0x53 end
   def build_class; bc 0x59 end
@@ -95,7 +100,7 @@ class Pyasm
     mark_jump n, bc(0x6f, n, 0x0)
   end
   def load_fast(n)
-    stack_push Object.new, bc(0x7c, n, 0x0)
+    stack_push n, bc(0x7c, n, 0x0)
   end
   def store_fast(n)
     dump_stack
@@ -133,8 +138,15 @@ class Pyasm
   def setlocal id
     store_fast id - 2
   end
+  def getdynamic id, lvl
+    load_name @varsyms[id - 1]
+  end
   def getconstant sym
     load_name(sym)
+  end
+  def print_obj
+    print_item
+    print_newline
   end
   def import(mod, inner = nil)
     load_const(-1)
@@ -173,8 +185,21 @@ class Pyasm
     end
     ret_val
   end
+  def duparray ary
+    ary.each do |x|
+      load_const x
+    end
+    build_list ary.length
+  end
   def newarray size
     build_list size
+  end
+  def opt_aref
+    binary_subscr
+  end
+  def opt_ltlt
+    build_list 1
+    inplace_add
   end
   def opt_plus
     binary_add
@@ -198,12 +223,16 @@ class Pyasm
     args = @stack[-op_argc, op_argc].map { |o,_| o }
     idx = @bytecode.index { |x| x.object_id == recbytes.object_id }
     bytes = []
+
     if idx
       bytes = @bytecode.slice! idx..-1
 
       unless receiver
         unpop 
         case meth
+        when :print
+          @bytecode += bytes
+          return print_obj
         when :import
           return import(*args)
         when :from
@@ -226,6 +255,14 @@ class Pyasm
       load_attr(meth)
     end
     @bytecode += bytes
+
+    if blockiseq
+      blk = Pyasm.new(@filename, :block, "<block>", @lines.last[0])
+      blk.load_iseq blockiseq
+      load_const(blk)
+      op_argc += 1
+    end
+
     call_func(op_argc)
   end
   def unpop
@@ -255,7 +292,7 @@ class Pyasm
     bytes = @bytecode.slice! idx..-1
     bytes.shift unless receiver
 
-    asm = Pyasm.new(@filename, type, id.to_s, @lines.last[0])
+    asm = Pyasm.new(@filename, type, id.to_s, @lines.last[0], iseq[5][:arg_size])
     if type == :class
       asm.load_name(:__name__)
       asm.store_name(:__module__)
@@ -297,7 +334,7 @@ class Pyasm
     iseq = iseq.to_a
     @varsyms += iseq[8].reverse
 
-    iseq.last.each do |inst|
+    iseq[11].each do |inst|
       case inst
       when Integer # line no
         line inst
@@ -332,7 +369,7 @@ class Pyasm
     end
 
     f = "c"
-    f << [@argc, @nlocals, @stacksize, @flags].pack("LLLL")
+    f << [@argc, @varsyms.length, @stacksize, @flags].pack("LLLL")
 
     # bytecode
     bytes = @bytecode.flatten

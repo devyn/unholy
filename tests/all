@@ -1,0 +1,19 @@
+#!/usr/bin/env ruby
+$: << "./lib"
+require 'unholy'
+
+ENV['PYTHONPATH'] = 'python'
+
+`rm -rf tests/*.pyc`
+Dir["tests/*.rb"].each do |rb|
+  unholy(rb, rb + ".pyc")
+  expect = File.read(rb).scan(/^# (.+\n)|^#(\n)/).join
+  actual = `python #{rb}.pyc`
+  puts "#{rb}: #{expect == actual ? "passed" : "FAILED"}"
+  unless expect == actual
+    puts "  expected:"
+    puts expect.gsub(/^/, '    ')
+    puts "  actual:"
+    puts actual.gsub(/^/, '    ')
+  end
+end
